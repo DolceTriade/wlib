@@ -6,7 +6,7 @@ use std::str;
 pub struct Color {
     pub r: u8,
     pub g: u8,
-    pub b: u8
+    pub b: u8,
 }
 
 impl Color {
@@ -14,14 +14,11 @@ impl Color {
         Color {
             r: ((i & (255 << 8 * 2)) >> 8 * 2) as u8,
             g: ((i & (255 << 8 * 1)) >> 8 * 1) as u8,
-            b: ((i & (255 << 8 * 0)) >> 8 * 0) as u8
+            b: ((i & (255 << 8 * 0)) >> 8 * 0) as u8,
         }
     }
     pub fn pack(&self) -> i32 {
-        0 |
-            ((self.r as i32) << 8 * 2) |
-            ((self.g as i32) << 8 * 1) |
-            ((self.b as i32) << 8 * 0)
+        0 | ((self.r as i32) << 8 * 2) | ((self.g as i32) << 8 * 1) | ((self.b as i32) << 8 * 0)
     }
 }
 
@@ -36,7 +33,9 @@ impl str::FromStr for Color {
             pre == "0x".to_string()
         };
         if is {
-            i32::from_str_radix(&hex, 16).map_err(|_| "not a hexadecimal color").map(|i| Color::unpack(i))
+            i32::from_str_radix(&hex, 16)
+                .map_err(|_| "not a hexadecimal color")
+                .map(|i| Color::unpack(i))
         } else {
             Err("not a hexadecimal color")
         }

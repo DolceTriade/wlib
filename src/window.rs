@@ -1,22 +1,22 @@
 use std::convert;
-use std::slice;
 use std::fmt;
-use std::str;
 use std::mem;
 use std::ptr;
+use std::slice;
+use std::str;
 
 use x11::xlib;
 
 use super::display;
+use super::shapes;
+use super::Color;
 use super::Display;
 use super::Screen;
-use super::Color;
-use super::shapes;
 
 pub struct Window<'d> {
     w: ID,
     d: &'d Display,
-    attrs: xlib::XWindowAttributes
+    attrs: xlib::XWindowAttributes,
 }
 
 impl<'d> Window<'d> {
@@ -24,16 +24,12 @@ impl<'d> Window<'d> {
         let mut w = Window {
             w: id,
             d: d,
-            attrs: unsafe {
-                mem::zeroed()
-            }
+            attrs: unsafe { mem::zeroed() },
         };
         w.update().map(|_| w)
     }
     fn get_attrs(&self) -> Result<xlib::XWindowAttributes, &'static str> {
-        let mut attrs = unsafe {
-            mem::zeroed()
-        };
+        let mut attrs = unsafe { mem::zeroed() };
         let ok = unsafe {
             xlib::XGetWindowAttributes(self.d.xlib_display(), self.w.into(), &mut attrs) == 1
         };
@@ -55,8 +51,8 @@ impl<'d> Window<'d> {
             Ok(a) => {
                 self.attrs = a;
                 Ok(())
-            },
-            Err(e) => Err(e)
+            }
+            Err(e) => Err(e),
         }
     }
     /// Moves the window
@@ -157,9 +153,7 @@ impl<'d> Window<'d> {
     ///
     /// Returns an error message if the call to `XMapWindow()` failed.
     pub fn map(&mut self) -> Result<(), &'static str> {
-        let ok = unsafe {
-            xlib::XMapWindow(self.d.xlib_display(), self.w.into()) == 1
-        };
+        let ok = unsafe { xlib::XMapWindow(self.d.xlib_display(), self.w.into()) == 1 };
         if ok {
             self.update()
         } else {
@@ -170,9 +164,7 @@ impl<'d> Window<'d> {
     ///
     /// Returns an error message if the call to `XUnmapWindow()` failed.
     pub fn unmap(&mut self) -> Result<(), &'static str> {
-        let ok = unsafe {
-            xlib::XUnmapWindow(self.d.xlib_display(), self.w.into()) == 1
-        };
+        let ok = unsafe { xlib::XUnmapWindow(self.d.xlib_display(), self.w.into()) == 1 };
         if ok {
             self.update()
         } else {
@@ -191,27 +183,40 @@ impl<'d> Window<'d> {
     ///   are changed
     /// - `XGetWindowAttributes()`
     pub fn change(&mut self, c: &Changes) -> Result<(), &'static str> {
-        Ok(()).and_then(|_| {
-            let mut attrs = c.attrs;
-            let ok = unsafe {
-                xlib::XChangeWindowAttributes(self.d.xlib_display(), self.id().into(), c.amask, &mut attrs) == 1
-            };
-            if ok {
-                Ok(())
-            } else {
-                Err("XChangeWindowAttributes() failed")
-            }
-        }).and_then(|_| {
-            let mut changes = c.changes;
-            let ok = unsafe {
-                xlib::XConfigureWindow(self.d.xlib_display(), self.id().into(), c.cmask as u32, &mut changes) == 1
-            };
-            if ok {
-                Ok(())
-            } else {
-                Err("XConfigureWindow() failed")
-            }
-        }).and_then(|_| self.update())
+        Ok(())
+            .and_then(|_| {
+                let mut attrs = c.attrs;
+                let ok = unsafe {
+                    xlib::XChangeWindowAttributes(
+                        self.d.xlib_display(),
+                        self.id().into(),
+                        c.amask,
+                        &mut attrs,
+                    ) == 1
+                };
+                if ok {
+                    Ok(())
+                } else {
+                    Err("XChangeWindowAttributes() failed")
+                }
+            })
+            .and_then(|_| {
+                let mut changes = c.changes;
+                let ok = unsafe {
+                    xlib::XConfigureWindow(
+                        self.d.xlib_display(),
+                        self.id().into(),
+                        c.cmask as u32,
+                        &mut changes,
+                    ) == 1
+                };
+                if ok {
+                    Ok(())
+                } else {
+                    Err("XConfigureWindow() failed")
+                }
+            })
+            .and_then(|_| self.update())
     }
     /// Destroys the window
     ///
@@ -219,9 +224,7 @@ impl<'d> Window<'d> {
     /// this call succeeds, the window should not exist any more and subsequent
     /// method calls on the window will return errors.
     pub fn destroy(&mut self) -> Result<(), &'static str> {
-        let ok = unsafe {
-            xlib::XDestroyWindow(self.d.xlib_display(), self.id().into()) > 0
-        };
+        let ok = unsafe { xlib::XDestroyWindow(self.d.xlib_display(), self.id().into()) > 0 };
         if ok {
             Ok(())
         } else {
@@ -234,9 +237,7 @@ impl<'d> Window<'d> {
     /// call succeeds, the window should not exist any more and subsequent
     /// method calls on the window will return errors.
     pub fn kill(&mut self) -> Result<(), &'static str> {
-        let ok = unsafe {
-            xlib::XKillClient(self.d.xlib_display(), self.id().into()) > 0
-        };
+        let ok = unsafe { xlib::XKillClient(self.d.xlib_display(), self.id().into()) > 0 };
         if ok {
             Ok(())
         } else {
@@ -250,7 +251,12 @@ impl<'d> Window<'d> {
     /// Returns an error message if the call to `XSetInputFocus()` failed.
     pub fn focus(&self) -> Result<(), &'static str> {
         let ok = unsafe {
-            xlib::XSetInputFocus(self.d.xlib_display(), self.id().into(), xlib::RevertToPointerRoot, xlib::CurrentTime) > 0
+            xlib::XSetInputFocus(
+                self.d.xlib_display(),
+                self.id().into(),
+                xlib::RevertToPointerRoot,
+                xlib::CurrentTime,
+            ) > 0
         };
         if ok {
             Ok(())
@@ -264,40 +270,47 @@ impl<'d> Window<'d> {
     /// returned NULL with an `n` greater than zero. Also returns errors if any
     /// of the children give errors at the `XGetWindowAttributes()` call.
     pub fn children(&self) -> Result<Vec<Window<'d>>, &'static str> {
-        Ok(()).and_then(|_| {
-            let mut _i = (0, 0);
-            let mut n = 0;
-            let mut ws = ptr::null_mut();
-            let ok = unsafe {
-                xlib::XQueryTree(self.d.xlib_display(), self.id().into(), &mut _i.0, &mut _i.1, &mut ws, &mut n) > 0
-            };
-            if ok {
-                Ok((ws, n))
-            } else {
-                Err("XQueryTree() failed")
-            }
-        }).and_then(|res| {
-            let (ws, n) = res;
-            let mut children = vec![];
-            if n == 0 {
-                Ok(children)
-            } else if ws.is_null() {
-                Err("XQueryTree() returned less windows than it promised")
-            } else {
-                let windows = unsafe {
-                    slice::from_raw_parts(ws, n as usize)
+        Ok(())
+            .and_then(|_| {
+                let mut _i = (0, 0);
+                let mut n = 0;
+                let mut ws = ptr::null_mut();
+                let ok = unsafe {
+                    xlib::XQueryTree(
+                        self.d.xlib_display(),
+                        self.id().into(),
+                        &mut _i.0,
+                        &mut _i.1,
+                        &mut ws,
+                        &mut n,
+                    ) > 0
                 };
-                for w in windows {
-                    let w = try!(Window::new(self.d, (*w).into()));
-                    children.push(w);
+                if ok {
+                    Ok((ws, n))
+                } else {
+                    Err("XQueryTree() failed")
                 }
-                Ok(children)
-            }
-        })
+            })
+            .and_then(|res| {
+                let (ws, n) = res;
+                let mut children = vec![];
+                if n == 0 {
+                    Ok(children)
+                } else if ws.is_null() {
+                    Err("XQueryTree() returned less windows than it promised")
+                } else {
+                    let windows = unsafe { slice::from_raw_parts(ws, n as usize) };
+                    for w in windows {
+                        let w = try!(Window::new(self.d, (*w).into()));
+                        children.push(w);
+                    }
+                    Ok(children)
+                }
+            })
     }
     /// Gets the screen this window is in
     pub fn screen(&self) -> Screen<'d> {
-        Screen::new(self.d, ptr::NonNull::new(self.attrs.screen).unwrap() )
+        Screen::new(self.d, ptr::NonNull::new(self.attrs.screen).unwrap())
     }
     pub(super) fn pointer_direct(&self) -> Result<display::Pointer, &'static str> {
         self.d.pointer_direct(self)
@@ -314,7 +327,17 @@ impl<'d> Window<'d> {
     /// Returns an error if the call to `XWarpPointer()` failed.
     pub fn warp_pointer(&self, p: shapes::Point) -> Result<(), &'static str> {
         let ok = unsafe {
-            xlib::XWarpPointer(self.d.xlib_display(), 0 /* xlib::None */, self.id().into(), 0, 0, 0, 0, p.x, p.y) > 0
+            xlib::XWarpPointer(
+                self.d.xlib_display(),
+                0, /* xlib::None */
+                self.id().into(),
+                0,
+                0,
+                0,
+                0,
+                p.x,
+                p.y,
+            ) > 0
         };
         if ok {
             Ok(())
@@ -331,7 +354,7 @@ impl<'d> Window<'d> {
     pub fn exists(&self) -> bool {
         match self.get_attrs() {
             Ok(_) => true,
-            Err(_) => false
+            Err(_) => false,
         }
     }
     pub fn id(&self) -> ID {
@@ -356,7 +379,10 @@ impl<'d> Window<'d> {
         shapes::Point::new(self.x(), self.y())
     }
     pub fn frame_size(&self) -> shapes::Rectangle {
-        shapes::Rectangle::new(self.width() + self.border_width() * 2, self.height() + self.border_width() * 2)
+        shapes::Rectangle::new(
+            self.width() + self.border_width() * 2,
+            self.height() + self.border_width() * 2,
+        )
     }
     pub fn frame(&self) -> shapes::PositionedRectangle {
         let p = self.frame_position();
@@ -407,7 +433,7 @@ impl<'d> Window<'d> {
 pub enum StackMode {
     Above = 0,
     Below = 1,
-    Opposite = 4
+    Opposite = 4,
 }
 
 #[derive(Clone)]
@@ -415,7 +441,7 @@ pub struct Changes {
     changes: xlib::XWindowChanges,
     attrs: xlib::XSetWindowAttributes,
     cmask: u16,
-    amask: u64
+    amask: u64,
 }
 
 impl Changes {
@@ -424,7 +450,7 @@ impl Changes {
             changes: unsafe { mem::zeroed() },
             attrs: unsafe { mem::zeroed() },
             cmask: 0,
-            amask: 0
+            amask: 0,
         }
     }
     pub fn reset(&mut self) {
@@ -482,7 +508,9 @@ impl str::FromStr for ID {
             pre == "0x".to_string()
         };
         if is {
-            u64::from_str_radix(&hex, 16).map_err(|_| "not a hexadecimal number").map(|u| u.into())
+            u64::from_str_radix(&hex, 16)
+                .map_err(|_| "not a hexadecimal number")
+                .map(|u| u.into())
         } else {
             Err("not a hexadecimal number")
         }

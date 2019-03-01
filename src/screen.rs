@@ -2,21 +2,18 @@ use std::ptr;
 
 use x11::xlib;
 
+use super::shapes;
 use super::Display;
 use super::Window;
-use super::shapes;
 
 pub struct Screen<'d> {
     d: &'d Display,
-    s: ptr::NonNull<xlib::Screen>
+    s: ptr::NonNull<xlib::Screen>,
 }
 
 impl<'d> Screen<'d> {
     pub(super) fn new(d: &'d Display, s: ptr::NonNull<xlib::Screen>) -> Self {
-        Screen {
-            d: d,
-            s: s
-        }
+        Screen { d: d, s: s }
     }
     fn get(&self) -> &xlib::Screen {
         unsafe { self.s.as_ref() }
