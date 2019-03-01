@@ -384,6 +384,23 @@ impl<'d> Window<'d> {
     pub fn mapped(&self) -> bool {
         self.attrs.map_state != xlib::IsUnmapped
     }
+    pub fn class_name(&self) -> Option<String> {
+        unsafe {
+            let mut hint: xlib::XClassHint = mem::zeroed();
+            let ret = xlib::XGetClassHint(self.d.xlib_display(), self.id().0, &mut hint);
+            if ret == 0 {
+                return None;
+            }
+            let name = CStr::from_ptr(hint.res_name).to_string_lossy().into_owned();
+            if !hint.res_name.is_null() {
+                xlib::XFree(hint.res_name as *mut _);
+            }
+            if !hint.res_class.is_null() {
+                xlib::XFree(hint.res_class as *mut _);
+            }
+            Some(name)
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
