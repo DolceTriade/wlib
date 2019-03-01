@@ -14,11 +14,11 @@ unsafe extern "C" fn x_noop_error_handler(_: *mut xlib::Display, _: *mut xlib::X
 }
 
 pub struct Display {
-    d: ptr::Unique<xlib::Display>
+    d: ptr::NonNull<xlib::Display>
 }
 
 impl Display {
-    fn new(d: ptr::Unique<xlib::Display>) -> Self {
+    fn new(d: ptr::NonNull<xlib::Display>) -> Self {
         Display { d: d }
     }
     fn open_direct(dispname: *const raw::c_char) -> Result<Self, &'static str> {
@@ -30,7 +30,7 @@ impl Display {
         if d.is_null() {
             Err("XOpenDisplay() failed")
         } else {
-            Ok(Display::new(unsafe { ptr::Unique::new(d) }))
+            Ok(Display::new(ptr::NonNull::new(d).unwrap() ))
         }
     }
     /// Opens a connection to the Xorg display server
@@ -57,7 +57,7 @@ impl Display {
         return Self::open_direct(ptr::null());
     }
     pub(super) fn xlib_display(&self) -> *mut xlib::Display {
-        *self.d
+        self.d.as_ptr()
     }
     pub(super) fn pointer_direct(&self, w: &Window) -> Result<Pointer, &'static str> {
         let mut root = 0;
@@ -129,7 +129,7 @@ impl Display {
         if s.is_null() {
             Err("XScreenOfDisplay() failed")
         } else {
-            Ok(Screen::new(&self, unsafe { ptr::Unique::new(s) }))
+            Ok(Screen::new(&self, ptr::NonNull::new(s).unwrap()))
         }
     }
     /// Get the default screen associated with the display
@@ -150,7 +150,7 @@ impl Display {
         let mut id = 0;
         let mut revert = 0;
         let ok = unsafe {
-            xlib::XGetInputFocus(*self.d, &mut id, &mut revert) > 0
+            xlib::XGetInputFocus(self.d.as_ptr(), &mut id, &mut revert) > 0
         };
         if ok {
             const NONE: u64 = 0; /* xlib::None, which is commented out for no reason */

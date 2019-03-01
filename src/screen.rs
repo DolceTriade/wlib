@@ -8,21 +8,18 @@ use super::shapes;
 
 pub struct Screen<'d> {
     d: &'d Display,
-    s: ptr::Unique<xlib::Screen>
+    s: ptr::NonNull<xlib::Screen>
 }
 
 impl<'d> Screen<'d> {
-    pub(super) fn new(d: &'d Display, s: ptr::Unique<xlib::Screen>) -> Self {
+    pub(super) fn new(d: &'d Display, s: ptr::NonNull<xlib::Screen>) -> Self {
         Screen {
             d: d,
             s: s
         }
     }
     fn get(&self) -> &xlib::Screen {
-        unsafe { self.s.get() }
-    }
-    pub(super) fn xlib_screen(&self) -> *mut xlib::Screen {
-        *self.s
+        unsafe { self.s.as_ref() }
     }
     /// Returns the pointer coordinates relative to this screen's root window.
     ///

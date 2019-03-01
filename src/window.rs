@@ -297,7 +297,7 @@ impl<'d> Window<'d> {
     }
     /// Gets the screen this window is in
     pub fn screen(&self) -> Screen<'d> {
-        Screen::new(self.d, unsafe { ptr::Unique::new(self.attrs.screen) })
+        Screen::new(self.d, ptr::NonNull::new(self.attrs.screen).unwrap() )
     }
     pub(super) fn pointer_direct(&self) -> Result<display::Pointer, &'static str> {
         self.d.pointer_direct(self)
