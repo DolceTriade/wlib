@@ -1,4 +1,5 @@
 use std::convert;
+use std::ffi::CStr;
 use std::fmt;
 use std::mem;
 use std::ptr;
