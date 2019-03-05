@@ -1,19 +1,34 @@
 extern crate wlib;
 extern crate x11;
 
-use x11::xlib;
-
-#[derive(Copy, Clone)]
-enum Attr {
-    X,
-    Y,
-}
-
 fn main() {
     let disp = wlib::Display::open().unwrap();
-    let pos = disp.pointer().unwrap();
-    let root = disp.screen().unwrap().root().unwrap();
-    for child in root.children().unwrap() {
-        println!("class = {:?}", child.class_name());
+    let mut root = disp.screen().unwrap().root().unwrap();
+    print_children(&root);
+}
+
+fn print_children(window: &wlib::Window) {
+    match window.children() {
+        Ok(children) => {
+            for child in children {
+                print_children(&child);
+            }
+        }
+        Err(_) => {}
     }
+    print_window(window);
+}
+
+fn print_window(window: &wlib::Window) {
+    let f = window.content();
+    println!(
+        "class = {:?} {} {} {} {} {:?} {:?}",
+        window.class_name(),
+        &f.p.x,
+        &f.p.y,
+        &f.r.w,
+        &f.r.h,
+        window.ignored(),
+        window.visible(),
+    );
 }
